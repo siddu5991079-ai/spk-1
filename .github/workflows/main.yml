@@ -1,0 +1,63 @@
+name: Stream Trigger
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'URL ya poora Iframe Code daalein'
+        required: true
+        type: string
+      okru_stream_channel:
+        description: 'Stream Channel ID (1 to 8)'
+        required: true
+        default: '1'
+        type: string
+      stream_quality:
+        description: 'Quality Settings'
+        required: true
+        default: '110KBps (Balanced 480p)'
+        type: string
+
+jobs:
+  start-stream:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # CLI Auto-Restart ke liye zaroori hai
+      contents: read
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install System Utilities (FFmpeg, Xvfb, Audio)
+        run: |
+          sudo apt-get update
+          # Xvfb aur PulseAudio install karna lazmi hai screen/audio record karne ke liye
+          sudo apt-get install -y xvfb pulseaudio ffmpeg dbus-x11
+
+      - name: Run Live Stream
+        env:
+          TARGET_URL: ${{ github.event.inputs.target_url }}
+          OKRU_STREAM_ID: ${{ github.event.inputs.okru_stream_channel }}
+          STREAM_QUALITY: ${{ github.event.inputs.stream_quality }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto-trigger naye action ke liye
+          DISPLAY: :99
+        run: |
+          # 1. Virtual Audio Device start karna taake Puppeteer volume play kar sake
+          pulseaudio -D --exit-idle-time=-1
+          pacmd load-module module-virtual-sink sink_name=v1
+          
+          # 2. Virtual Display start karna (taake video play aur record ho)
+          Xvfb :99 -screen 0 1280x720x24 &
+          
+          # 3. Thoda wait aur phir script start karna
+          sleep 3
+          node stream.js
