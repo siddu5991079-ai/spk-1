@@ -22,7 +22,7 @@ jobs:
   start-stream:
     runs-on: ubuntu-latest
     permissions:
-      actions: write # CLI Auto-Restart ke liye zaroori hai
+      actions: write
       contents: read
     
     steps:
@@ -34,28 +34,36 @@ jobs:
         with:
           node-version: '18'
 
+      # YAHAN TABDEELI KI GAYI HAI 👇
+      # Hum NPM ko bata rahe hain ke Chromium browser download MAt karo,
+      # taake installation hang na ho.
       - name: Install Dependencies
+        env:
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true 
         run: npm install
 
-      - name: Install System Utilities (FFmpeg, Xvfb, Audio)
+      # YAHAN BHI TABDEELI KI GAYI HAI 👇
+      # Hum Linux ka default Chromium browser install kar rahe hain jo tez hota hai.
+      - name: Install System Utilities (FFmpeg, Xvfb, Audio, Browser)
         run: |
           sudo apt-get update
-          # Xvfb aur PulseAudio install karna lazmi hai screen/audio record karne ke liye
-          sudo apt-get install -y xvfb pulseaudio ffmpeg dbus-x11
+          sudo apt-get install -y xvfb pulseaudio ffmpeg dbus-x11 chromium-browser
 
       - name: Run Live Stream
         env:
           TARGET_URL: ${{ github.event.inputs.target_url }}
           OKRU_STREAM_ID: ${{ github.event.inputs.okru_stream_channel }}
           STREAM_QUALITY: ${{ github.event.inputs.stream_quality }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto-trigger naye action ke liye
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DISPLAY: :99
+          # Puppeteer ko bata rahe hain ke konsa browser use karna hai
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser 
         run: |
-          # 1. Virtual Audio Device start karna taake Puppeteer volume play kar sake
+          # 1. Virtual Audio Device start karna
           pulseaudio -D --exit-idle-time=-1
           pacmd load-module module-virtual-sink sink_name=v1
           
-          # 2. Virtual Display start karna (taake video play aur record ho)
+          # 2. Virtual Display start karna
           Xvfb :99 -screen 0 1280x720x24 &
           
           # 3. Thoda wait aur phir script start karna
