@@ -1,0 +1,15 @@
+{
+  "name": "auto-streamer",
+  "version": "1.0.0",
+  "description": "GitHub Actions Auto Streamer",
+  "main": "stream.js",
+  "scripts": {
+    "start": "node stream.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer-screen-recorder": "^2.1.2"
+  }
+}
